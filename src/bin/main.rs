@@ -1,110 +1,45 @@
 use std::io;
 use std::io::Read;
 
-use std::collections::HashMap;
-use std::rc::Weak;
-use std::rc::Rc;
-use std::cell::RefCell;
-
-use tabcel::cell::{self, Cell};
+use tabcel::table::{self, Table};
 
 fn main() {
-    // let c1 = 0;
-    // let c2 = 0;
+    let mut table = Table::new();
 
-    // table.insert(Coord::new(2, 2), op::val(4.0));
-    // table.insert(Coord::new(1,1), op::add(&c1, &c2));
-    // table.insert((3, 3), op::sum(vec![&c1, &c2, &c3]));
-    // table.insert((4, 3), op::average(range((1, 1), (1, 8))));
+    table.insert(
+        (1, 1),
+        table::Operation::None(table::OperationValue::Value(1.0)),
+    );
+    table.insert(
+        (1, 2),
+        table::Operation::None(table::OperationValue::Value(2.0)),
+    );
+    table.insert(
+        (2, 1),
+        table::Operation::Add(
+            table::OperationValue::Cell((1, 1)),
+            table::OperationValue::Cell((1, 2)),
+        ),
+    );
+    table.insert(
+        (1, 3),
+        table::Operation::None(table::OperationValue::Value(std::f64::consts::FRAC_PI_2)),
+    );
+    table.insert(
+        (3, 1),
+        table::Operation::Sine(table::OperationValue::Cell((1, 4))),
+    );
+
+    table.table.get(&(1, 1)).unwrap().update();
+    table.table.get(&(1, 2)).unwrap().update();
+    table.table.get(&(1, 3)).unwrap().update();
+    table.table.get(&(2, 1)).unwrap().update();
+    table.table.get(&(3, 1)).unwrap().update();
+
+    for (coord, val) in table.iter() {
+        println!("({}, {}): {}", coord.0, coord.1, val.get_value());
+    }
 }
-
-/// 
-/// table verwaltet alle zellen
-/// mit Koordinate und Struktur welche Zelle enthält und Zellen worauf es sich bezieht
-/// Zelle an sich weiß nichts von anderen Zellen, bekommt nur deren Werte
-/// Werte werden von Struktur berechnet welche verwaltet auf welche Zellen es sich bezieht
-/// Operation (für jetzt) kann nur ein oder zwei Argumente bekommen (Grundrechenarten und Mathematische funktionen wie Sinus)
-/// ((Rest ist späteres Problem))
-/// 
-/// speichere intern dann nur pointer zu den anderen Zellen. Um upzudaten, speichert jede Zelle (über andere Struktur) ein Wert, wie häufigt
-/// geupdatet wurde. Benutze dafür u64 (mit MAX: 18446744073709551615 .. sollte ausreichen)... oder auch nicht. mal gucken..
-
-struct Coord {
-    x: u32,
-    y: u32,
-}
-
-impl Coord {
-    fn convert_11_to_A1() { }
-    fn convert_A1_to_11() { }
-}
-
-// fn main() {
-//     // let input = read_input();
-
-//     // println!("{:?}", input);
-
-//     // let cell = parse_input(input);
-
-//     // println!("{:?}", cell);
-
-//     // #[derive(Debug)]
-//     // struct Num {
-//     //     num: i32,
-//     //     references: Weak<RefCell<Num>>,
-//     //     referenced_by: Weak<RefCell<Num>>,
-//     // }
-//     // impl Num {
-//     //     fn add_one(&mut self) {
-//     //         self.num += 1
-//     //     }
-//     // }
-
-//     // // c2 references c1, c1 referenced by c2
-//     // let c1 = Rc::new(RefCell::new(Num { num: 5, references: Weak::new(), referenced_by: Weak::new() }));
-//     // let c2 = Rc::new(RefCell::new(Num { num: 5, references: Weak::new(), referenced_by: Weak::new() }));
-//     // let c3 = Rc::new(RefCell::new(Num { num: 5, references: Weak::new(), referenced_by: Weak::new() }));
-
-//     // c1.borrow_mut().referenced_by = Rc::downgrade(&c2);
-//     // c2.borrow_mut().references = Rc::downgrade(&c1);
-//     // c3.borrow_mut().references = Rc::downgrade(&c2);
-
-//     // println!("c1: {:?}", c1);
-//     // println!("c2: {:?}", c2);
-//     // println!("{}", Weak::ptr_eq(&c2.borrow().references, &c3.borrow().references));
-
-//     // return;
-
-//     let mut table: HashMap<(u32, u32), Rc<RefCell<Cell>> > = HashMap::new();
-
-//     // let c1 = Cell::new(1, 1);
-//     // let c2 = Cell::new(2, 2);
-//     // let mut c3 = Cell::new(3, 1);
-    
-//     table.insert((1, 1), Rc::new(RefCell::new(Cell::new())));
-//     table.insert((2, 2), Rc::new(RefCell::new(Cell::new())));
-//     table.insert((3, 1), Rc::new(RefCell::new(Cell::new())));
-    
-//     if let Some(c3) = table.get(&(3, 1)) {
-//         if let Some(c1) = table.get(&(1,1)) {
-//             if let Some(c2) = table.get(&(2,2)) {
-//                 c1.borrow_mut().value = 2.;
-//                 c2.borrow_mut().value = 3.;
-
-//                 c1.borrow_mut().referenced_by = Rc::downgrade(c3);
-//                 c2.borrow_mut().referenced_by = Rc::downgrade(c3);
-
-//                 c3.borrow_mut().references = Rc::downgrade(c1);
-//                 c3.borrow_mut().references = Rc::downgrade(c2);
-
-//                 c3.borrow_mut().value = c1.borrow().value + c2.borrow().value;
-//                 c3.borrow_mut().operation = cell::Operation::Add;
-//             }
-//         }
-//     }
-
-//     println!("{:#?}", table);
-// }
 
 // fn read_input() -> Vec<char> {
 //     let mut input: Vec<char> = Vec::new();
@@ -141,7 +76,7 @@ impl Coord {
 //             }
 //         } else {
 //             buff.push(*c);
-//         } 
+//         }
 //     }
 
 //     let value = buff.trim().parse::<f64>().expect("content must be a float (for now)");
