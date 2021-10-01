@@ -4,42 +4,50 @@ use std::io::Read;
 use tabcel::table::{self, Table};
 
 fn main() {
-    let mut table = Table::new();
-
-    table.insert(
-        (1, 1),
-        table::Operation::None(table::OperationValue::Value(1.0)),
-    );
-    table.insert(
-        (1, 2),
-        table::Operation::None(table::OperationValue::Value(2.0)),
-    );
-    table.insert(
-        (2, 1),
-        table::Operation::Add(
-            table::OperationValue::Cell((1, 1)),
-            table::OperationValue::Cell((1, 2)),
-        ),
-    );
-    table.insert(
-        (1, 3),
-        table::Operation::None(table::OperationValue::Value(std::f64::consts::FRAC_PI_2)),
-    );
-    table.insert(
-        (3, 1),
-        table::Operation::Sine(table::OperationValue::Cell((1, 4))),
-    );
-
-    table.table.get(&(1, 1)).unwrap().update();
-    table.table.get(&(1, 2)).unwrap().update();
-    table.table.get(&(1, 3)).unwrap().update();
-    table.table.get(&(2, 1)).unwrap().update();
-    table.table.get(&(3, 1)).unwrap().update();
-
-    for (coord, val) in table.iter() {
-        println!("({}, {}): {}", coord.0, coord.1, val.get_value());
-    }
+    
 }
+// fn main() {
+//     let mut table = Table::new();
+
+//     table.insert(
+//         (1, 1),
+//         table::Operation::None(table::OperationValue::Value(1.0)),
+//     );
+//     table.insert(
+//         (1, 2),
+//         table::Operation::None(table::OperationValue::Value(2.0)),
+//     );
+//     table.insert(
+//         (2, 1),
+//         table::Operation::Add(
+//             table::OperationValue::Cell((1, 1)),
+//             table::OperationValue::Cell((1, 2)),
+//         ),
+//     );
+//     table.insert(
+//         (1, 3),
+//         table::Operation::None(table::OperationValue::Value(std::f64::consts::FRAC_PI_2)),
+//     );
+//     table.insert(
+//         (3, 1),
+//         table::Operation::Sine(table::OperationValue::Cell((1, 4))),
+//     );
+//     println!("-------------------------");
+//     table.insert(
+//         (1, 1),
+//         table::Operation::None(table::OperationValue::Value(-1.0)),
+//     );
+//     table.insert(
+//         (1, 4),
+//         table::Operation::None(table::OperationValue::Value(std::f64::consts::FRAC_PI_4)),
+//     );
+
+//     for (coord, val) in table.iter() {
+//         println!("({}, {}): {}", coord.0, coord.1, val.get_value());
+//     }
+// }
+
+
 
 // fn read_input() -> Vec<char> {
 //     let mut input: Vec<char> = Vec::new();

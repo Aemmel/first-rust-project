@@ -5,6 +5,154 @@ type StrongRef = Rc<RefCell<f64>>;
 type WeakRef = Weak<RefCell<f64>>;
 
 #[derive(Debug)]
+pub enum CellValue {
+    Num(f64),
+    /// `Unity` type behaves as expected from mathematics
+    /// i.e. for addition `Num` + `Unity` = `Num` (`Unity` behaves like a zero)
+    /// for multiplication `Num` * `Unity`= `Num` (`Unity` behaves like a one)
+    Unity,
+}
+
+impl std::ops::Add for CellValue {
+    type Output = Self;
+
+    fn add(self, other: Self) -> Self {
+        match self {
+            CellValue::Num(v1) => match other {
+                CellValue::Num(v2) => CellValue::Num(v1 + v2), // both Num
+                CellValue::Unity => CellValue::Num(v1),        // one Num, one Unity
+            },
+            CellValue::Unity => match other {
+                CellValue::Num(v2) => CellValue::Num(v2), // one Unity, one Num
+                CellValue::Unity => CellValue::Unity,     // both Unity
+            },
+        }
+    }
+}
+
+impl std::ops::Mul for CellValue {
+    type Output = Self;
+
+    fn mul(self, other: Self) -> Self {
+        match self {
+            CellValue::Num(v1) => match other {
+                CellValue::Num(v2) => CellValue::Num(v1 * v2), // both Num
+                CellValue::Unity => CellValue::Num(v1),        // one Num, one Unity
+            },
+            CellValue::Unity => match other {
+                CellValue::Num(v2) => CellValue::Num(v2), // one Unity, one Num
+                CellValue::Unity => CellValue::Unity,     // both Unity
+            },
+        }
+    }
+}
+
+impl std::ops::Sub for CellValue {
+    type Output = Self;
+
+    fn sub(self, other: Self) -> Self {
+        match self {
+            CellValue::Num(v1) => match other {
+                CellValue::Num(v2) => CellValue::Num(v1 - v2), // both Num
+                CellValue::Unity => CellValue::Num(v1),        // one Num, one Unity
+            },
+            CellValue::Unity => match other {
+                CellValue::Num(v2) => CellValue::Num(-v2), // one Unity, one Num
+                CellValue::Unity => CellValue::Unity,      // both Unity
+            },
+        }
+    }
+}
+
+impl std::ops::Div for CellValue {
+    type Output = Self;
+
+    fn div(self, other: Self) -> Self {
+        match self {
+            CellValue::Num(v1) => match other {
+                CellValue::Num(v2) => CellValue::Num(v1 / v2), // both Num
+                CellValue::Unity => CellValue::Num(v1),        // one Num, one Unity
+            },
+            CellValue::Unity => match other {
+                CellValue::Num(v2) => CellValue::Num(1. / v2), // one Unity, one Num
+                CellValue::Unity => CellValue::Unity,          // both Unity
+            },
+        }
+    }
+}
+
+impl PartialEq for CellValue {
+    // we want Num(v1) == Num(v1)
+    // Num(_) != Unity
+    // Unity == Unity
+    fn eq(&self, other: &Self) -> bool {
+        if let CellValue::Num(v1) = *self {
+            if let CellValue::Num(v2) = *other {
+                return v1 == v2;
+            }
+        }
+        if let CellValue::Unity = *self {
+            if let CellValue::Unity = *other {
+                return true;
+            }
+        }
+
+        false
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn ops_cellvalue_num_num() {
+        assert_eq!(CellValue::Num(2.) + CellValue::Num(3.), CellValue::Num(5.));
+        assert_eq!(CellValue::Num(2.) - CellValue::Num(3.), CellValue::Num(-1.));
+        assert_eq!(CellValue::Num(2.) * CellValue::Num(3.), CellValue::Num(6.));
+        assert_eq!(
+            CellValue::Num(2.) / CellValue::Num(3.),
+            CellValue::Num(2. / 3.)
+        );
+    }
+
+    #[test]
+    fn ops_cellvalue_num_unity() {
+        assert_eq!(CellValue::Num(2.) + CellValue::Unity, CellValue::Num(2.));
+        assert_eq!(CellValue::Num(2.) - CellValue::Unity, CellValue::Num(2.));
+        assert_eq!(CellValue::Num(2.) * CellValue::Unity, CellValue::Num(2.));
+        assert_eq!(CellValue::Num(2.) / CellValue::Unity, CellValue::Num(2.));
+    }
+
+    #[test]
+    fn ops_cellvalue_unity_num() {
+        assert_eq!(CellValue::Unity + CellValue::Num(3.), CellValue::Num(3.));
+        assert_eq!(CellValue::Unity - CellValue::Num(3.), CellValue::Num(-3.));
+        assert_eq!(CellValue::Unity * CellValue::Num(3.), CellValue::Num(3.));
+        assert_eq!(
+            CellValue::Unity / CellValue::Num(3.),
+            CellValue::Num(1. / 3.)
+        );
+    }
+
+    #[test]
+    fn ops_cellvalue_unity_unity() {
+        assert_eq!(CellValue::Unity + CellValue::Unity, CellValue::Unity);
+        assert_eq!(CellValue::Unity - CellValue::Unity, CellValue::Unity);
+        assert_eq!(CellValue::Unity * CellValue::Unity, CellValue::Unity);
+        assert_eq!(CellValue::Unity / CellValue::Unity, CellValue::Unity);
+    }
+
+    #[test]
+    fn cmp_cellvalue() {
+        assert!(CellValue::Num(2.) == CellValue::Num(2.));
+        assert!(CellValue::Num(2.) != CellValue::Num(3.));
+        assert!(CellValue::Unity != CellValue::Num(2.));
+        assert!(CellValue::Num(2.) != CellValue::Unity);
+        assert!(CellValue::Unity == CellValue::Unity);
+    }
+}
+
+#[derive(Debug)]
 pub struct Cell {
     value: StrongRef,
     operation: Operation,
@@ -43,7 +191,6 @@ impl Cell {
         Rc::downgrade(&self.value)
     }
 
-    // TODO: make error handling. so that unwrap of Weak pointer can fail, if that cell is empty. This would result in the value being ERROR or so
     pub fn update(&self) {
         *self.value.borrow_mut() = match &self.operation {
             Operation::None(o) => self.match_operation_value(o),
@@ -61,13 +208,8 @@ impl Cell {
         match op {
             OperationValue::Value(val) => *val,
             OperationValue::Cell(c) => {
-                // indicate non-existent cell by NaN
-                // has exact behaviour I want and does not need a refactor
-                match c.upgrade() {
-                    Some(p) => *p.borrow(),
-                    None => f64::NAN,
-                }
-            },
+                *c.upgrade().unwrap().borrow()
+            }
         }
     }
 }
