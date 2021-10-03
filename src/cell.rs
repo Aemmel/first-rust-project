@@ -207,9 +207,7 @@ impl Cell {
     fn match_operation_value(&self, op: &OperationValue) -> f64 {
         match op {
             OperationValue::Value(val) => *val,
-            OperationValue::Cell(c) => {
-                *c.upgrade().unwrap().borrow()
-            }
+            OperationValue::Cell(c) => *c.upgrade().unwrap().borrow(),
         }
     }
 }

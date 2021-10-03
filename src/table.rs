@@ -18,13 +18,13 @@ impl Table {
             referenced_by: HashMap::new(),
         }
     }
-    
+
     pub fn insert(&mut self, coord: Coord, operation: Operation) {
         let cell_op: cell::Operation;
-        
+
         // remove potential old references, since insert always overwrites a (potentially empty) cell
         self.update_references_remove(&coord);
-        
+
         match operation {
             Operation::None(o) => {
                 let co = self.match_operation_value(o, &coord);
@@ -33,7 +33,7 @@ impl Table {
             Operation::Add(o1, o2) => {
                 let co1 = self.match_operation_value(o1, &coord);
                 let co2 = self.match_operation_value(o2, &coord);
-                
+
                 cell_op = cell::Operation::Add(co1, co2)
             }
             Operation::Sine(o) => {
@@ -41,13 +41,16 @@ impl Table {
                 cell_op = cell::Operation::Sine(co);
             }
         }
-        
+
         // self.table.insert(coord, c);
-        self.table.entry(coord).or_insert_with(Cell::new).set_operation(cell_op);
-        
+        self.table
+            .entry(coord)
+            .or_insert_with(Cell::new)
+            .set_operation(cell_op);
+
         self.update_cell(&coord);
     }
-    
+
     pub fn iter(&self) -> std::collections::hash_map::Iter<Coord, Cell> {
         self.table.iter()
     }
@@ -57,11 +60,11 @@ impl Table {
     }
 
     fn update_cell(&mut self, to_update: &Coord) {
-        let mut updater = CellUpdater{ to_update: vec![] };
-        
+        let mut updater = CellUpdater { to_update: vec![] };
+
         updater.gather_cells_to_update(to_update, &self.referenced_by);
         updater.remove_duplicates();
-        
+
         // important to go from front to back
         for i in &updater.to_update {
             println!("{:?}", *i);
@@ -162,7 +165,7 @@ impl CellUpdater {
         referenced_by: &HashMap<Coord, Vec<Coord>>,
     ) {
         self.to_update.push(*cell_to_update);
-        
+
         if let Some(refs) = referenced_by.get(cell_to_update) {
             for c in refs {
                 self.gather_cells_to_update(c, referenced_by);
@@ -180,14 +183,18 @@ impl CellUpdater {
         for i in (0..self.to_update.len()).rev() {
             let mut curr_index = i;
 
-            while let Some(new_pos) = self.to_update[0..curr_index].iter().rev().position(|cell| *cell == self.to_update[i]) {
+            while let Some(new_pos) = self.to_update[0..curr_index]
+                .iter()
+                .rev()
+                .position(|cell| *cell == self.to_update[i])
+            {
                 // new_pos now index of reversed slice to_update[0..curr_index]
                 let new_pos = curr_index - 1 - new_pos;
 
                 if to_remove.iter().position(|&j| j == new_pos).is_none() {
                     to_remove.push(new_pos);
                 }
-                    curr_index = new_pos;
+                curr_index = new_pos;
             }
         }
 
@@ -203,7 +210,9 @@ mod tests {
 
     #[test]
     fn test_remove_duplicates() {
-        let mut c = CellUpdater{ to_update: vec![(1, 1), (4, 4), (2, 2), (4, 4), (3, 3), (4, 4), (5, 5)] };
+        let mut c = CellUpdater {
+            to_update: vec![(1, 1), (4, 4), (2, 2), (4, 4), (3, 3), (4, 4), (5, 5)],
+        };
         c.remove_duplicates();
 
         assert_eq!(c.to_update, vec![(1, 1), (2, 2), (3, 3), (4, 4), (5, 5)])
